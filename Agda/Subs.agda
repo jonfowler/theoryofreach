@@ -14,14 +14,18 @@ open import Relation.Nullary
 
 postulate ext : {A B : Set}{f g : A → B} →  ((x : A) → f x ≡ g x) → f ≡ g
  
-VarSet : Set 
-VarSet = ℕ
+data VarSet : Set where
+  ∅ : VarSet
+  V1 : VarSet
+  _∪_ : VarSet → VarSet → VarSet
   
-Var : VarSet → Set
-Var = Fin 
+data Var : VarSet → Set where
+  here : Var V1
+  inL : ∀{X Y} → Var X → Var (X ∪ Y) 
+  inR : ∀{X Y} → Var Y → Var (X ∪ Y) 
 
 Empty : VarSet → Set
-Empty V = V ≡ 0 
+Empty V = ¬ (Var V) 
 
 data Val (X : VarSet) : Set where
   Z : Val X
@@ -41,7 +45,7 @@ _⇀_ : VarSet → VarSet → Set
 _⇀_ X Y = Var X → Val Y
 
 Inp : VarSet → Set
-Inp X = X ⇀ 0 
+Inp X = X ⇀ ∅ 
 
 -- Monad on Val, bind is application of substitution
 _>>=_ : {X Y : VarSet} →  Val X → (X ⇀ Y) → Val Y
