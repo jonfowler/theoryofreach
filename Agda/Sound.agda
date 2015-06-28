@@ -31,7 +31,7 @@ replace-lift : ∀{V' X Y} (V : ℕ) → (e : Exp (V + suc V') X) → (e' : Exp 
 
 -- Proof of soundness
 -- case 1)
-⇝⁺-sound ([] o τ)  = []
+⇝⁺-sound ([] τ)  = []
 
 -- case 2)
 ⇝⁺-sound {e = e}{e'} (_∷_ {τ = τ} (narr s σ n) r⁺) = coerce₁ (⇝⁺-sound r⁺) 

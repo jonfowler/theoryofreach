@@ -73,7 +73,7 @@ data _⇝_ {V : ℕ}{X : VarSet} : {Y : VarSet} → Exp V X → Exp V Y × X ⇀
   red : ∀{e e'} → (r : e ↦ e') → e ⇝ (e' , return)
   
 data _⇝⁺_ {V : ℕ}{X : VarSet} : {Y : VarSet} → Exp V X → Exp V Y × X ⇀ Y → Set where 
-   [] : ∀ {e Y} → (o : Empty Y) → (τ : X ⇀ Y) → e ⇝⁺ (e ⟦ τ ⟧ , τ)
+   [] : ∀ {e} → (τ : X ⇀ ∅) → e ⇝⁺ (e ⟦ τ ⟧ , τ)
    _∷_ : ∀ {e Y Z e' e'' σ τ} →
          _⇝_ {Y = Y} e (e' , σ) → _⇝⁺_ {Y = Z} e' (e'' , τ) → e ⇝⁺ (e'' , σ >=> τ)
           

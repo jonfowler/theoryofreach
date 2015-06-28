@@ -23,54 +23,58 @@ data Var : VarSet → Set where
   here : Var V1
   inL : ∀{X Y} → Var X → Var (X ∪ Y) 
   inR : ∀{X Y} → Var Y → Var (X ∪ Y) 
-
+  
 Empty : VarSet → Set
 Empty V = ¬ (Var V) 
 
-data Val (X : VarSet) : Set where
-  Z : Val X
-  S : Val X → Val X
-  fvar : Var X → Val X
+data ValG (A : Set) : Set where
+  Z : ValG A 
+  S : ValG A → ValG A
+  fvar : A → ValG A 
+  
+Val : VarSet → Set
+Val X = ValG (Var X)
 
---Var? : (V : VarSet) → Dec (Var V)
---Var? ∅ = no (λ ())
---Var? V1 = yes here -- (λ ¬e → ¬e here) 
---Var? (X ∪ Y) with Var? X | Var? Y 
---Var? (X ∪ Y) | yes p1 | b = yes (inL p1) -- yes (λ {(inL x) → p1 x ; (inR y) → p2 y})
---Var? (X ∪ Y) | no ¬p | yes p = yes (inR p)
---Var? (X ∪ Y) | no ¬p | no ¬p₁ = no (λ {(inL x) → ¬p x; (inR x) → ¬p₁ x}) -- no (λ ¬e → ¬p (λ x → ¬e (inL x)))
+valMap : {A B : Set} → (A → B) → ValG A → ValG B
+valMap f Z = Z
+valMap f (S v) = S (valMap f v)
+valMap f (fvar x) = fvar (f x)
 
 -- Type of Substitutions, Sub_{X→Y} in paper
+
+SubG : Set → Set → Set
+SubG A B = A → ValG B 
+
 _⇀_ : VarSet → VarSet → Set
-_⇀_ X Y = Var X → Val Y
+_⇀_ X Y = SubG (Var X) (Var Y)
 
 Inp : VarSet → Set
 Inp X = X ⇀ ∅ 
 
 -- Monad on Val, bind is application of substitution
-_>>=_ : {X Y : VarSet} →  Val X → (X ⇀ Y) → Val Y
-fvar x >>= f = f x
-Z >>= f = Z
-S a >>= f = S (a >>= f)
+_>>=_ : {X Y : Set} →  ValG X → SubG X Y → ValG Y
+fvar x >>= σ = σ x
+Z >>= σ = Z
+S a >>= σ = S (a >>= σ)
 
 -- The identity substitution
-return : {X : VarSet} → X ⇀ X 
-return = fvar
+return : {X : Set} → SubG X X 
+return = fvar 
 
 -- Composition of substitutions (kleisli composition)
-_>=>_ : {X Y Z : VarSet} → (X ⇀ Y) → (Y ⇀ Z) → X ⇀ Z
+_>=>_ : {X Y Z : Set} → SubG X Y → SubG Y Z → SubG X Z
 _>=>_ f g a = f a >>= g
 
 -- The Monad laws
->>=-left : {X Y : VarSet} → (x : Var X) → (f : (X ⇀ Y)) → return x >>= f ≡ f x
+>>=-left : {X Y : Set} → (x : X) → (f : SubG X Y) → return x >>= f ≡ f x
 >>=-left x f = refl
 
->>=-right : {X : VarSet} → (a : Val X) → a >>= return ≡ a
+>>=-right : {X : Set} → (a : ValG X) → a >>= return ≡ a
 >>=-right (fvar x) = refl
 >>=-right Z = refl
 >>=-right (S a) = cong S (>>=-right a) 
 
->>=-assoc : {X Y Z : VarSet} → (a : Val X) → (f : X ⇀ Y) → (g : Y ⇀ Z) → 
+>>=-assoc : {X Y Z : Set} → (a : ValG X) → (f : SubG X Y) → (g : SubG Y Z) → 
              (a >>= f) >>= g ≡ a >>= (λ a → (f a >>= g))
 >>=-assoc (fvar x) f g = refl
 >>=-assoc Z f g = refl

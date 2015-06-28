@@ -7,12 +7,12 @@ open import LazyNarrowing
 open import Sound
 
 open import Data.Nat
-open import Data.Fin hiding (_+_)
 open import Data.Product
 open import Relation.Binary.PropositionalEquality
 open import Relation.Nullary
 open import Data.Empty
 open import Function
+open import WellFound
 
 Susp : ∀{V X} → Exp V X → Set
 Susp e = ∃ (λ x → e ⊸ x)
@@ -36,6 +36,16 @@ Susp e = ∃ (λ x → e ⊸ x)
   with ↦-unlift {e = case e alt₀ e₁ altₛ e₂} b r (λ {(x , sus) → ¬s (x , (subj-susp sus))})
 ↦-unlift {V} {X} {Y} {case case e alt₀ e₁ altₛ e₂ alt₀ e₃ altₛ e₄} b (prom r) ¬s 
   | e'' , r' , eq = case e'' alt₀ e₃ altₛ e₄  , prom r' , cong₃ case_alt₀_altₛ_ eq refl refl
+  
+Susp? : ∀{V X} → (e : Exp V X) → Dec (Susp e)
+Susp? Z = no (λ {( x , () )} )
+Susp? (S e) = no (λ {( x , () )} )
+Susp? • = no (λ {(x , () )} )
+Susp? (var x) = no (λ {( x , () )} )
+Susp? (fvar x) = yes (x , susp x)
+Susp? (case e alt₀ e₁ altₛ e₂) with Susp? e
+Susp? (case e alt₀ e₁ altₛ e₂) | yes (x , s) = yes (x , subj-susp s)
+Susp? (case e alt₀ e₁ altₛ e₂) | no ¬p = no (λ {(x , subj-susp s) → ¬p (x , s)})
   
 _[|_//_] : ∀ {X Y Z} → (τ : X ⇀ Z) → (x : Var X) →  Y ⇀ Z → X [ x // Y ] ⇀ Z 
 _[|_//_] τ here σ x' = σ x'
@@ -65,14 +75,49 @@ complete-narr {X} τ x | Z | [ eq ] = let ab = ((λ { () }) , refl)
 complete-narr {X} τ x | S c | [ eq ] = let ab = (λ {here → c}) , refl 
   in X [ x // V1 ] , x / (S (fvar here)) , narr bindS , τ [| x // proj₁ ab ] , ext (point-eq (S (fvar here)) (S c) τ x eq ab)
   
+embed : {X Y : VarSet} →  (x : Var X) → (y : Var Y) → Var (X [ x // Y ])
+embed here y = y
+embed (inL x) y = inL (embed x y)
+embed (inR x) y = inR (embed x y)
 
---Susp? : ∀{V X} → (e : Exp V X) → Dec (Susp e)
---Susp? Z = no (λ {( x , () )} )
---Susp? (S e) = no (λ {( x , () )} )
---Susp? (var x) = no (λ {( x , () )} )
---Susp? (fvar x) = yes (x , susp x)
---Susp? (case e alt₀ e₁ altₛ e₂) with Susp? e
---Susp? (case e alt₀ e₁ altₛ e₂) | yes (x , s) = yes (x , subj-susp s)
---Susp? (case e alt₀ e₁ altₛ e₂) | no ¬p = no (λ {(x , subj-susp s) → ¬p (x , s)})
- 
+point-look : {X Y : VarSet} → (x : Var X) → (a : Val Y) → (x / a) x ≡ a >>= (fvar ∘ embed x)
+point-look here a = sym (>>=-right a)
+point-look (inL x) a = let 
+  eq = cong (λ a' → a' >>= (λ x → fvar (inL x))) (point-look x a)
+    in trans eq (>>=-assoc a (fvar ∘ embed x) (λ x → fvar (inL x)))
+point-look (inR x) a = let 
+  eq = cong (λ a' → a' >>= (λ x → fvar (inR x))) (point-look x a)
+    in trans eq (>>=-assoc a (fvar ∘ embed x) (λ x → fvar (inR x)))
+
+point-adv : ∀{X Y} → (x : Var X)  → (a : Val Y) → ((y : Var Y) → a ≠ fvar y)  →  ¬ ((x / a) ⊑ return)
+point-adv x (fvar y) ne (σ , eq) = ⊥-elim (ne y refl)  
+point-adv x Z ne (σ , eq) with subst (λ p → return x ≡ p >>= σ) (point-look x Z) (cong (λ f → f x) eq)
+point-adv x Z ne (σ , eq) | ()
+point-adv x (S a) ne (σ , eq) with subst (λ p → return x ≡ p >>= σ) (point-look x (S a)) (cong (λ f → f x) eq)
+point-adv x (S a) ne (σ , eq) | ()
+
+adv-narr : {X Y : VarSet} → (x : Var X) → (σ : X ⇀ Y) → Narr x σ → return ⊏ σ
+adv-narr x .(x / Z) (narr bindZ) = (x / Z , refl) , point-adv x Z (λ y → λ ())
+adv-narr x .(x / S (fvar here)) (narr bindS) = (x / S (fvar here) , refl) , point-adv x (S (fvar here)) (λ y → λ ())
+
+adv-specific : ∀{X Y Z}{σ : X ⇀ Y}{τ : Y ⇀ Z} → (x : Var X) → Narr x σ → count τ < count (σ >=> τ) 
+adv-specific {τ = τ} x (narr bindZ) = <-count x ((λ ()) , (λ y → λ ())) τ
+adv-specific {τ = τ} x (narr bindS) = <-count x ((λ {here → isS here}) , (λ y → λ ())) τ
+
+⇝⁺-complete' : ∀{V X}{e : Exp V X}{e' : Exp V ∅} → (τ : X ⇀ ∅) → Acc _<_ (count τ) →
+              e ⟦ τ ⟧ ↦* e' → e ⇝⁺ (e' , τ )
+⇝⁺-complete' τ wf [] = [] τ
+⇝⁺-complete' {e = e}{e' = e''} τ wf (_∷_ {e' = e'} r r*) with Susp? e
+⇝⁺-complete' τ wf (r ∷ r*)  | yes (x , sus) with complete-narr τ x 
+⇝⁺-complete' {e = e}{e' = e''} ._ (acc wf) (r ∷ r*) | yes (x , sus) | X₁ , σ , nar , τ' , refl = 
+    narr sus σ nar ∷ ⇝⁺-complete' τ' (wf (adv-specific x nar)) (coerce₁ (r ∷ r*))
+   where coerce₁ = subst (λ x₁ → x₁ ↦* e'') (sym (⟦⟧-func e σ τ'))
+⇝⁺-complete' {e = e}{e' = e''} τ wf (_∷_ {e' = e'} r r*) | no ¬p with ↦-unlift τ r ¬p 
+⇝⁺-complete' τ wf (r ∷ r*) | no ¬p | et , r' , refl = red r' ∷ ⇝⁺-complete' τ wf r* 
+
+⇝⁺-complete : ∀{V X}{e : Exp V X}{e' : Exp V ∅} → (τ : X ⇀ ∅) →
+              e ⟦ τ ⟧ ↦* e' → e ⇝⁺ (e' , τ )
+⇝⁺-complete τ r = ⇝⁺-complete' τ (acc-< (count τ)) r
+
+
 
