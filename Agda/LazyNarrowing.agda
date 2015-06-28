@@ -67,16 +67,18 @@ embed-lift (S a) σ = cong S (embed-lift a σ)
 ⟦⟧-func (fvar x) σ σ' = embed-lift (σ x) σ'
 ⟦⟧-func (case e alt₀ e₁ altₛ e₂) σ σ' = cong₃ case_alt₀_altₛ_ (⟦⟧-func e σ σ') (⟦⟧-func e₁ σ σ') (⟦⟧-func e₂ σ σ')
 
- 
+ -- Defintion of lazy narrowing small step reduction
 data _⇝_ {V : ℕ}{X : VarSet} : {Y : VarSet} → Exp V X → Exp V Y × X ⇀ Y → Set where 
   narr : ∀{e x Y} → e ⊸ x → (σ : X ⇀ Y) → Narr x σ → e ⇝ (e ⟦ σ ⟧ , σ)
   red : ∀{e e'} → (r : e ↦ e') → e ⇝ (e' , return)
   
+-- Sequencing lazy narrowing steps
 data _⇝⁺_ {V : ℕ}{X : VarSet} : {Y : VarSet} → Exp V X → Exp V Y × X ⇀ Y → Set where 
    [] : ∀ {e} → (τ : X ⇀ ∅) → e ⇝⁺ (e ⟦ τ ⟧ , τ)
    _∷_ : ∀ {e Y Z e' e'' σ τ} →
          _⇝_ {Y = Y} e (e' , σ) → _⇝⁺_ {Y = Z} e' (e'' , τ) → e ⇝⁺ (e'' , σ >=> τ)
           
+-- Lazy narrowing reachability
 data ReachF {V : ℕ}{X : VarSet} (e : Exp V X) (τ : Inp X) : Set where
   reachF : e ⇝⁺ (• , τ) → ReachF e τ
  

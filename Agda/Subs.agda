@@ -11,14 +11,16 @@ open import Data.Empty
 open import Function
 open import Relation.Nullary 
 
-
+-- extensionality for the equality on substitutions
 postulate ext : {A B : Set}{f g : A → B} →  ((x : A) → f x ≡ g x) → f ≡ g
  
+-- The index for a free variable set
 data VarSet : Set where
   ∅ : VarSet
   V1 : VarSet
   _∪_ : VarSet → VarSet → VarSet
   
+-- The variables in a variable set
 data Var : VarSet → Set where
   here : Var V1
   inL : ∀{X Y} → Var X → Var (X ∪ Y) 
@@ -26,12 +28,13 @@ data Var : VarSet → Set where
   
 Empty : VarSet → Set
 Empty V = ¬ (Var V) 
-
+ 
 data ValG (A : Set) : Set where
   Z : ValG A 
   S : ValG A → ValG A
   fvar : A → ValG A 
   
+-- A value with a variable in its fvar part
 Val : VarSet → Set
 Val X = ValG (Var X)
 
@@ -81,9 +84,11 @@ _>=>_ f g a = f a >>= g
 >>=-assoc (S a) f g = cong S (>>=-assoc a f g)
 
 
+-- ordering for single values
 _⊑ₚ_ : ∀{X Y} → Val X → Val Y → Set 
 n ⊑ₚ m = ∃ (λ σ → m ≡ n >>= σ)
 
+-- ordering for substitutions
 _⊑_ : ∀{X Y Z} → X ⇀ Y → X ⇀ Z → Set
 σ ⊑ τ = ∃ (λ σ' → τ ≡ σ >=> σ')
 
