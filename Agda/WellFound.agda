@@ -13,120 +13,8 @@ open import Relation.Nullary
 open import Data.Nat
 open import Data.Fin hiding (_+_; _≤_; _<_)
 
---onto' : ∀{X Y} → X ⇀ Y → Set
---onto' {X}{Y} σ = ∀{Z}{τ τ' : Y ⇀ Z} → σ >=> τ ≡ σ >=> τ' → τ ≡ τ'
---
---data PosV {X : ℕ} : ValG (Fin X)  → Set where
---  here : ∀{a} → PosV a
---  inS : ∀{a} → PosV a → PosV (S a)
---  
---data _≤P_ {X : ℕ} : {a : ValG (Fin X)} → PosV a → PosV a → Set where
---  ≤here : ∀{a}{p : PosV a} → here ≤P p 
---  ≤inS : ∀{a}{p p' : PosV a} → p ≤P p' → (inS p) ≤P (inS p')
---  
---_<P_ : ∀{X}{a : ValG (Fin X)} → PosV a → PosV a → Set
---p <P p' = (p ≤P p') × p ≠ p'
---
---countVar : VarSet → ℕ
---countVar ∅ = 0
---countVar V1 = 1
---countVar (X1 ∪ X2) = countVar X1 + countVar X2
---
---convVar : {X : VarSet} → Var X → Fin (countVar X)
---convVar {∅} ()
---convVar {V1} here = zero
---convVar {X ∪ X₁} (inL x) = inject+ (countVar X₁) (convVar x)
---convVar {X ∪ X₁} (inR x) = raise (countVar X) (convVar x)
---
---conv≤ : ∀{m n} → ¬ (m ≤ n) → n < m
---conv≤ {zero} x = ⊥-elim (x z≤n)
---conv≤ {suc m} {zero} x = s≤s z≤n
---conv≤ {suc m} {suc n} x = s≤s (conv≤ {m} {n} (λ x' → x (s≤s x')))
---
---convVar' : {X : VarSet} → Fin (countVar X) → Var X 
---convVar' {∅} ()
---convVar' {V1} zero = here
---convVar' {V1} (suc ())
---convVar' {X ∪ X₁} n with countVar X ≤? (toℕ n)
---convVar' {X ∪ X₁} n | yes p = inR (convVar' {X₁} (reduce≥ n p))
---convVar' {X ∪ X₁} n | no ¬p = inL (convVar' (fromℕ≤ (conv≤ ¬p) ))
---
---conv-inv : {X : VarSet}(x : Var X) → convVar' (convVar x) ≡ x
---conv-inv here = refl
---conv-inv {X1 ∪ X2} (inL x) with conv-inv x | countVar X1 ≤? (toℕ (inject+ (countVar X2) (convVar x))) 
-----conv-inv {X1 ∪ X2} (inL x) | c | yes p = {!!}
-----conv-inv {X1 ∪ X2} (inL x) | c | no ¬p = {!!}
-----conv-inv (inR x) = {!!}
---
---_⇀N_ : ℕ → ℕ → Set 
---_⇀N_ X Y = SubG (Fin X) (Fin Y) 
---
---ValN : ℕ → Set
---ValN X = ValG (Fin X)
---
---convS : ∀{X Y} → X ⇀ Y → countVar X ⇀N countVar Y
---convS f =  (f ∘ convVar') >=> (fvar ∘ convVar) 
---
----->>=-conv : ∀{X Y Z} → (σ : X ⇀ Y) → (τ : Y ⇀ Z) → convS (σ >=> τ) ≡ convS σ >=> convS τ
----->>=-conv σ τ = ext (λ x → trans {!!} (sym (>>=-assoc (σ (convVar' x)) (λ z → fvar (convVar z)) (λ z → τ (convVar' z) >>= (λ z₁ → fvar (convVar z₁)))))) 
----- 
---Pos : ∀{X Y} → (X ⇀N Y) → Set
---Pos σ = ∃ (λ x → PosV (σ x))
---
---lookupV : ∀{X} → (a : ValG (Fin X)) → PosV a → ValG (Fin X)
---lookupV a here = a
---lookupV (S a) (inS p) = lookupV a p
---
---lookup : ∀{X Y} (σ : X ⇀ Y) → Pos σ → Val Y
---lookup σ (x , p) = lookupV (σ x) p
---
---updateV : ∀{X} → (a : Val X) → PosV a → (b : Val X) → Val X
---updateV Z here b = b
---updateV (S a) here b = b
---updateV (S a) (inS p) b = S (updateV a p b)
---updateV (fvar x) here b = b
---
---embedV : ∀{X}{a : Val X}{b : Val X} → (p : PosV a) → PosV (updateV a p b) 
---embedV here = here
---embedV (inS p) = inS (embedV p)
---
---outS : ∀{X}{a : Val X}{p p' : PosV a} → inS p ≡ inS p' → p ≡ p'
---outS refl = refl
---
---embedV2 : ∀{X}{a : Val X}{b : Val X} → (p : PosV a) → (p' : PosV a) → ¬ (p <P p') → PosV (updateV a p b) 
---embedV2 here here le = here
---embedV2 here (inS p') le = ⊥-elim (le (≤here , (λ ())))
---embedV2 (inS p) here le = here
---embedV2 (inS p) (inS p') le = inS (embedV2 p p' (λ {(le' , eq) → le ((≤inS le') , (λ x → eq (outS x)))})) 
---
---upd-lookV : ∀{X}{a b : Val X}{p : PosV a} → lookupV (updateV a p b) (embedV p) ≡ b
---upd-lookV {a = Z}{p = here} = refl
---upd-lookV {a = S a} {p = here} = refl
---upd-lookV {a = S a} {p = inS p} = upd-lookV {a = a} {p = p}
---upd-lookV {a = fvar x} {p = here} = refl
---
---upd-lookV2 : ∀{X}{a b : Val X}{p : PosV a} → (p' : PosV a) → ¬(p' ≤P p) → (le : ¬(p <P p')) → lookupV (updateV a p b) (embedV2 p p' le) ≡ lookupV a p'
---upd-lookV2 {p = here} here nl nm = ⊥-elim (nl ≤here)
---upd-lookV2 {p = inS p} here nl nm = ⊥-elim (nl ≤here)
---upd-lookV2 {p = here} (inS p') nl nm = ⊥-elim (nm (≤here , (λ ())))
---upd-lookV2 {p = inS p} (inS p') nl nm = upd-lookV2 {p = p} p' (λ x → nl (≤inS x)) (λ {(le' , eq) → nm ((≤inS le') , (λ x → eq (outS x)))})
---
---update : ∀{X Y} → (σ : X ⇀ Y) → Pos σ → (b : Val Y) → X ⇀ Y 
---update σ (here , p) b here = updateV (σ here) p b
---update σ (inL x , p) b (inL x') = update (σ ∘ inL) (x , p) b x'
---update σ (inL x , p) b (inR x') = σ (inR x')
---update σ (inR x , p) b (inL x') = σ (inL x')
---update σ (inR x , p) b (inR x') = update (σ ∘ inR) (x , p) b x'
---
---onto : ∀{X Y} → X ⇀ Y → Set
---onto {X}{Y} σ = (y : Var Y) → ∃ (λ p → lookup σ p ≡ fvar y ) 
---
---_⊆_ : ∀{X Y Z} → Y ⇀ Z → X ⇀ Z → Set
---σ ⊆ τ = ∃ (λ σ' → τ ≡ σ' >=> σ × onto σ')
---
---_⊂_ : ∀{X Y Z} → Y ⇀ Z → X ⇀ Z → Set
---σ ⊂ τ = σ ⊆ τ × ¬ (τ ⊆ σ)
---
+-- WellFoundness for one point updates with no free variables values. Should be replaced with the more general result in the paper at some point
+
 countₚ : {X : VarSet} → Val X → ℕ
 countₚ (fvar x) = 0 
 countₚ Z = 1
@@ -136,21 +24,6 @@ count : ∀{X Y} → X ⇀ Y → ℕ
 count {∅} σ = 0
 count {V1} σ = countₚ (σ here)
 count {X1 ∪ X2} σ = count (σ ∘ inL) + count (σ ∘ inR)
-
---embedPSub : ∀{X Y Z}{τ : Y ⇀ Z} → (σ : X ⇀ Y) → Pos σ → Pos (σ >=> τ)
---embedPSub {∅} σ (() , p)
---embedPSub {V1} σ (here , p) = here , {!!}
---embedPSub {X1 ∪ X2}{τ = τ} σ (inL x , p) with embedPSub {τ = τ} (σ ∘ inL) (x , p) 
---embedPSub {X1 ∪ X2} σ (inL x , p) | x' , p' = inL x' , p'
---embedPSub {X1 ∪ X2}{τ = τ} σ (inR x , p) with embedPSub {τ = τ} (σ ∘ inR) (x , p) 
---embedPSub {X1 ∪ X2} σ (inR x , p) | x' , p' = inR x' , p'
-
-
---count1 : ∀{X Y} → (τ : X ⇀ Y) → (p : Pos τ) → count τ ≡ countₚ (lookup τ p) + count (update (τ >=> (fvar ∘ inR)) {!!} (fvar (inL here))) 
---count1 = {!!}
---
---count-≤ : ∀{X Y Z} → (σ : X ⇀ Y) → onto σ → (τ : Y ⇀ Z) → count τ ≤ count (σ >=> τ)
---count-≤ = {!!}
 
 data WFSub {X : VarSet} : {Y : VarSet} → X ⇀ Y → Set where
    [] : WFSub return 
