@@ -8,4 +8,4 @@ The agda files are as follows:
 - LazyNarrowing.agda - definiton of lazy narrowing reduction + forward reachability 
 - Sound.agda - soundness of lazy narrowing
 - Complete.agda - completeness of lazy narrowing
-- WellFound.agda - proof of well foundness for completeness, not currently as general as well foundness stated in paper
+- WellFound.agda - well foundness used in completeness, this is currently a well foundness specific to lazy narrowing and not as general as the well foundness stated in paper
