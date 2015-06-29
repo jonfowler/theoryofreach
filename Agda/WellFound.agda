@@ -13,7 +13,7 @@ open import Relation.Nullary
 open import Data.Nat
 open import Data.Fin hiding (_+_; _≤_; _<_)
 
--- WellFoundness for one point updates with no free variables values. Should be replaced with the more general result in the paper at some point
+-- WellFoundness for one point updates with no free variables values. This is not as general as the well foundness given in the paper but is sufficient for our purposes. Will be updated to the general result at some point.
 
 countₚ : {X : VarSet} → Val X → ℕ
 countₚ (fvar x) = 0 
