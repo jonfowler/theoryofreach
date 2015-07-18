@@ -29,15 +29,15 @@ shape {∅} f = ∅
 shape {V1} f = shapeV (f here)
 shape {X1 ∪ X2} f = shape (f ∘ inL) ∪ shape (f ∘ inR) 
 
-applV : {C : Set} → (s : ValG Unit) → (Var (shapeV s) → ValG C) → ValG C
-applV Z f = Z
-applV (S s) f = S (applV s f)
-applV (fvar x) f = f here 
+_>>=ₛ_ : {C : Set} → (s : ValG Unit) → (Var (shapeV s) → ValG C) → ValG C
+_>>=ₛ_ Z f = Z
+_>>=ₛ_ (S s) f = S (s >>=ₛ f)
+_>>=ₛ_ (fvar x) f = f here 
 
-appl : {X : VarSet}{C : Set} → (s : SubStr X) → (Var (shape s) → ValG C) → (Var X → ValG C)
-appl s f here = applV (s here) f
-appl s f (inL x) = appl (s ∘ inL) (f ∘ inL) x 
-appl s f (inR x) = appl (s ∘ inR) (f ∘ inR) x
+_>=>ₛ_ : {X : VarSet}{C : Set} → (s : SubStr X) → (Var (shape s) → ValG C) → (Var X → ValG C)
+_>=>ₛ_ s f here = (s here) >>=ₛ f
+_>=>ₛ_ s f (inL x) = _>=>ₛ_ (s ∘ inL)  (f ∘ inL) x 
+_>=>ₛ_ s f (inR x) = _>=>ₛ_ (s ∘ inR)  (f ∘ inR) x
 
 _⇀W_ : VarSet → VarSet → Set 
 X ⇀W Y = Σ (SubStr X) (λ s → Var (shape s) → Var Y)
@@ -58,7 +58,7 @@ embed {X1 ∪ X2} f | s1 , m1 | s2 , m2 =
   (λ {(inL x) → m1 x ; (inR x) → m2 x}) 
 
 _>=>W_ : ∀{X Y Z} → X ⇀W Y → Y ⇀W Z → X ⇀W Z
-(s , m) >=>W (s' , m') = appl s (s' ∘ m) , {!m'!}
+(s , m) >=>W (s' , m') = s >=>ₛ (s' ∘ m) , {!m'!}
 
 --countₚ : {X : VarSet} → Val X → ℕ
 --countₚ (fvar x) = 0 
