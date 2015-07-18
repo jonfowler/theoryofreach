@@ -34,6 +34,13 @@ _>>=ₛ_ Z f = Z
 _>>=ₛ_ (S s) f = S (s >>=ₛ f)
 _>>=ₛ_ (fvar x) f = f here 
 
+shape-id : ∀{X} → (f : SubStr X) → ((x : Var X) → f x ≡ fvar unit) → shape f ≡ X
+shape-id {∅} f eq = refl
+shape-id {V1} f eq = cong shapeV (eq here)
+shape-id {X ∪ X₁} f eq = cong₂ _∪_ 
+         (shape-id (f ∘ inL) (eq ∘ inL )) 
+         (shape-id (f ∘ inR) (eq ∘ inR))
+
 _>=>ₛ_ : {X : VarSet}{C : Set} → (s : SubStr X) → (Var (shape s) → ValG C) → (Var X → ValG C)
 _>=>ₛ_ s f here = (s here) >>=ₛ f
 _>=>ₛ_ s f (inL x) = _>=>ₛ_ (s ∘ inL)  (f ∘ inL) x 
@@ -56,6 +63,20 @@ embed {X1 ∪ X2} f with embed (f ∘ inL) | embed (f ∘ inR)
 embed {X1 ∪ X2} f | s1 , m1 | s2 , m2 = 
   (λ {(inL x) → s1 x ; (inR x) → s2 x}) , 
   (λ {(inL x) → m1 x ; (inR x) → m2 x}) 
+  
+idW : ∀ X → X ⇀W X
+idW X = (λ x → fvar unit) , coerce₁ id 
+  where coerce₁ = subst (λ x → Var x → Var X) (sym (shape-id (λ _ → fvar unit) (λ x → refl))) 
+  
+newm : ∀{X Y Z} → (s : SubStr X) → (m : Var (shape s) → Var Y)
+                  (s' : SubStr Y) → (m' : Var (shape s') → Var Z) →
+                  Var (shape (s >=>ₛ (s' ∘ m))) → Var Z 
+newm {∅} s m s' m' ()
+newm {V1} s m s' m' x = {!!}
+newm {X ∪ X₁} s m s' m' x with 
+  newm (s ∘ inL) (m ∘ inL) s' m' | newm (s ∘ inR) (m ∘ inR) s' m'
+newm {X ∪ X₁} s m s' m' (inL x) | m1 | m2 = m1 x
+newm {X ∪ X₁} s m s' m' (inR x) | m1 | m2 = m2 x
 
 _>=>W_ : ∀{X Y Z} → X ⇀W Y → Y ⇀W Z → X ⇀W Z
 (s , m) >=>W (s' , m') = s >=>ₛ (s' ∘ m) , {!m'!}
