@@ -7,90 +7,238 @@ open import LazyNarrowing
 open import Data.Product
 open import Data.Sum
 open import Relation.Binary.PropositionalEquality
+open Relation.Binary.PropositionalEquality.≡-Reasoning
 open import Data.Empty
 open import Function
 open import Relation.Nullary 
---open import Data.Nat
+open import Data.Nat
 open import Data.Unit
 open import Data.Fin hiding (_+_; _≤_; _<_)
 
 -- WellFoundness for one point updates with no free variables values. This is not as general as the well foundness given in the paper but is sufficient for our purposes. Will be updated to the general result at some point.
 
-shapeV : ValG Unit → VarSet
-shapeV Z = ∅
-shapeV (S a) = shapeV a
-shapeV (fvar x) = V1
-
-SubStr : VarSet → Set
-SubStr X = (Var X → ValG Unit)
-
-shape : ∀{X} → SubStr X → VarSet
-shape {∅} f = ∅
-shape {V1} f = shapeV (f here)
-shape {X1 ∪ X2} f = shape (f ∘ inL) ∪ shape (f ∘ inR) 
-
-_>>=ₛ_ : {C : Set} → (s : ValG Unit) → (Var (shapeV s) → ValG C) → ValG C
-_>>=ₛ_ Z f = Z
-_>>=ₛ_ (S s) f = S (s >>=ₛ f)
-_>>=ₛ_ (fvar x) f = f here 
-
-shape-id : ∀{X} → (f : SubStr X) → ((x : Var X) → f x ≡ fvar unit) → shape f ≡ X
-shape-id {∅} f eq = refl
-shape-id {V1} f eq = cong shapeV (eq here)
-shape-id {X ∪ X₁} f eq = cong₂ _∪_ 
-         (shape-id (f ∘ inL) (eq ∘ inL )) 
-         (shape-id (f ∘ inR) (eq ∘ inR))
-
-_>=>ₛ_ : {X : VarSet}{C : Set} → (s : SubStr X) → (Var (shape s) → ValG C) → (Var X → ValG C)
-_>=>ₛ_ s f here = (s here) >>=ₛ f
-_>=>ₛ_ s f (inL x) = _>=>ₛ_ (s ∘ inL)  (f ∘ inL) x 
-_>=>ₛ_ s f (inR x) = _>=>ₛ_ (s ∘ inR)  (f ∘ inR) x
-
-_⇀W_ : VarSet → VarSet → Set 
-X ⇀W Y = Σ (SubStr X) (λ s → Var (shape s) → Var Y)
-
-embedV : ∀{Y} →  Val Y → Σ (ValG Unit) (λ x → Var (shapeV x) → Var Y)
-embedV Z = Z , λ ()
-embedV (S s) with embedV s
-embedV (S s) | s' , m = S s' , m
-embedV (fvar x) = (fvar unit) , (λ {here → x})
-
-embed : ∀{X Y} → X ⇀ Y → X ⇀W Y
-embed {∅} f = (λ ()) , λ ()
-embed {V1} f with embedV (f here) 
-embed {V1} f | s , m = (λ {here → s}) , m
-embed {X1 ∪ X2} f with embed (f ∘ inL) | embed (f ∘ inR)
-embed {X1 ∪ X2} f | s1 , m1 | s2 , m2 = 
-  (λ {(inL x) → s1 x ; (inR x) → s2 x}) , 
-  (λ {(inL x) → m1 x ; (inR x) → m2 x}) 
-  
-idW : ∀ X → X ⇀W X
-idW X = (λ x → fvar unit) , coerce₁ id 
-  where coerce₁ = subst (λ x → Var x → Var X) (sym (shape-id (λ _ → fvar unit) (λ x → refl))) 
-  
-newm : ∀{X Y Z} → (s : SubStr X) → (m : Var (shape s) → Var Y)
-                  (s' : SubStr Y) → (m' : Var (shape s') → Var Z) →
-                  Var (shape (s >=>ₛ (s' ∘ m))) → Var Z 
-newm {∅} s m s' m' ()
-newm {V1} s m s' m' x = {!!}
-newm {X ∪ X₁} s m s' m' x with 
-  newm (s ∘ inL) (m ∘ inL) s' m' | newm (s ∘ inR) (m ∘ inR) s' m'
-newm {X ∪ X₁} s m s' m' (inL x) | m1 | m2 = m1 x
-newm {X ∪ X₁} s m s' m' (inR x) | m1 | m2 = m2 x
-
-_>=>W_ : ∀{X Y Z} → X ⇀W Y → Y ⇀W Z → X ⇀W Z
-(s , m) >=>W (s' , m') = s >=>ₛ (s' ∘ m) , {!m'!}
-
---countₚ : {X : VarSet} → Val X → ℕ
---countₚ (fvar x) = 0 
---countₚ Z = 1
---countₚ (S a) = 1 + countₚ a
+--holesV : ValG Unit → VarSet
+--holesV Z = ∅
+--holesV (S a) = holesV a
+--holesV (fvar x) = V1
 --
---count : ∀{X Y} → X ⇀ Y → ℕ
---count {∅} σ = 0
---count {V1} σ = countₚ (σ here)
---count {X1 ∪ X2} σ = count (σ ∘ inL) + count (σ ∘ inR)
+--SubStr : VarSet → Set
+--SubStr X = (Var X → ValG Unit)
 --
+--holes : ∀{X} → SubStr X → VarSet
+--holes {∅} f = ∅
+--holes {V1} f = holesV (f here)
+--holes {X1 ∪ X2} f = holes (f ∘ inL) ∪ holes (f ∘ inR) 
+--
+--holes-id : ∀{X} → (f : SubStr X) → ((x : Var X) → f x ≡ fvar unit) → holes f ≡ X
+--holes-id {∅} f eq = refl
+--holes-id {V1} f eq = cong holesV (eq here)
+--holes-id {X ∪ X₁} f eq = cong₂ _∪_ 
+--         (holes-id (f ∘ inL) (eq ∘ inL )) 
+--         (holes-id (f ∘ inR) (eq ∘ inR))
+--         
+--_>>=ₕ_ : {C : Set} → (s : ValG Unit) → (Var (holesV s) → ValG C) → ValG C
+--_>>=ₕ_ Z f = Z
+--_>>=ₕ_ (S s) f = S (s >>=ₕ f)
+--_>>=ₕ_ (fvar x) f = f here 
+--
+--_>=>ₕ_ : {X : VarSet}{C : Set} → (s : SubStr X) → (Var (holes s) → ValG C) → (Var X → ValG C)
+--_>=>ₕ_ s f here = (s here) >>=ₕ f
+--_>=>ₕ_ s f (inL x) = _>=>ₕ_ (s ∘ inL)  (f ∘ inL) x 
+--_>=>ₕ_ s f (inR x) = _>=>ₕ_ (s ∘ inR)  (f ∘ inR) x
+--
+--_⇀W_ : VarSet → VarSet → Set 
+--X ⇀W Y = Σ (SubStr X) (λ s → Var (holes s) → Var Y)
+--
+--embedV : ∀{Y} →  Val Y → Σ (ValG Unit) (λ x → Var (holesV x) → Var Y)
+--embedV Z = Z , λ ()
+--embedV (S s) with embedV s
+--embedV (S s) | s' , m = S s' , m
+--embedV (fvar x) = (fvar unit) , (λ {here → x})
+--
+--embed : ∀{X Y} → X ⇀ Y → X ⇀W Y
+--embed {∅} f = (λ ()) , λ ()
+--embed {V1} f with embedV (f here) 
+--embed {V1} f | s , m = (λ {here → s}) , m
+--embed {X1 ∪ X2} f with embed (f ∘ inL) | embed (f ∘ inR)
+--embed {X1 ∪ X2} f | s1 , m1 | s2 , m2 = 
+--  (λ {(inL x) → s1 x ; (inR x) → s2 x}) , 
+--  (λ {(inL x) → m1 x ; (inR x) → m2 x}) 
+--  
+--idW : ∀ X → X ⇀W X
+--idW X = (λ x → fvar unit) , coerce₁ id 
+--  where coerce₁ = subst (λ x → Var x → Var X) (sym (holes-id (λ _ → fvar unit) (λ x → refl))) 
+--  
+--
+--newmV : ∀{Y Z} → (a : ValG Unit) → (m : Var (holesV a) → Var Y)
+--                  (s' : SubStr Y) → (m' : Var (holes s') → Var Z) →
+--                  Var (holesV (a >>=ₕ (s' ∘ m))) → Var Z 
+--newmV Z m s' m' ()
+--newmV (S a) m s' m' x = newmV a m s' m' x
+--newmV (fvar unit) m s' m' x' = {!!}
+--
+--newm : ∀{X Y Z} → (s : SubStr X) → (m : Var (holes s) → Var Y)
+--                  (s' : SubStr Y) → (m' : Var (holes s') → Var Z) →
+--                  Var (holes (s >=>ₕ (s' ∘ m))) → Var Z 
+--newm {∅} s m s' m' ()
+--newm {V1} s m s' m' x = {!!}
+--newm {X ∪ X₁} s m s' m' (inL x) = (newm (s ∘ inL) (m ∘ inL) s' m') x
+--newm {X ∪ X₁} s m s' m' (inR x) = (newm (s ∘ inR) (m ∘ inR) s' m') x
+--
+--_>=>W_ : ∀{X Y Z} → X ⇀W Y → Y ⇀W Z → X ⇀W Z
+--(s , m) >=>W (s' , m') = s >=>ₕ (s' ∘ m) , {!m'!}
+
+countₚ : {X : VarSet} → Val X → ℕ
+countₚ (fvar x) = 0 
+countₚ Z = 1
+countₚ (S a) = 1 + countₚ a
+
+countOver : {X : VarSet} → (Var X → ℕ) → ℕ
+countOver {∅} f = 0
+countOver {V1} f = f here 
+countOver {X1 ∪ X2} f = countOver (f ∘ inL) + countOver (f ∘ inR)
+
+count : ∀{X Y} → X ⇀ Y → ℕ
+count σ = countOver (λ x → countₚ (σ x))
+
+data _∈ₚ_ {X : VarSet} (x : Var X) : (Val X) → Set where
+  here : x ∈ₚ (fvar x) 
+  inS : ∀{a} → x ∈ₚ a → x ∈ₚ (S a)
+  
+Pos : {X : VarSet} → Val X → Set
+Pos a = ∃ (λ y → y ∈ₚ a)
+
+SPos : ∀{X}{a : Val X} → Pos a → Pos (S a)
+SPos (x , p) = x , inS p
+
+_∈_ : {X Y : VarSet} → (y : Var Y) → X ⇀ Y → Set
+y ∈ σ = ∃ (λ x → y ∈ₚ σ x)
+
+PosSet : ∀{X Y} →  X ⇀ Y → Set₁
+PosSet σ = ∀ x → Pos (σ x) → Set
+
+Onto : ∀{X Y} → X ⇀ Y → Set
+Onto σ = ∀ y → y ∈ σ
+
+OntoSet : ∀{X Y}{σ : X ⇀ Y} → Onto σ → PosSet σ
+OntoSet o x (y' , p) = o y' ≡ (x , p)
+
+outS : ∀{Y}{a : Val Y}{y : Var Y}{p p' : y ∈ₚ a} → inS p ≡ inS p' → p ≡ p'
+outS refl = refl
+
+outR : ∀{X Y}{x x' : Var X} → inR {Y} x ≡ inR x' → x ≡ x'
+outR refl = refl
+
+outL : ∀{X Y}{x x' : Var X} → inL {X}{Y} x ≡ inL x' → x ≡ x'
+outL refl = refl
+
+out2 : {A : Set}{P : A → Set}{a : A}{p p' : P a} → (_,_ {B = P} a p) ≡ (a , p') → p ≡ p'
+out2 refl = refl
+
+decP : ∀{Y}{a : Val Y}{y : Var Y} → (p p' : y ∈ₚ a) → Dec (p ≡ p')
+decP here here = yes refl
+decP (inS p) (inS p') with decP p p'
+decP (inS p) (inS p') | yes eq = yes (cong inS eq)
+decP (inS p) (inS p') | no ¬p = no (λ x → ¬p (outS x))
+
+decX : ∀{X} → (x x' : Var X) → Dec (x ≡ x')
+decX here here = yes refl
+decX (inL x) (inL x') with decX x x'
+decX (inL x) (inL x') | yes p = yes (cong inL p)
+decX (inL x) (inL x') | no ¬p = no (¬p ∘ outL)
+decX (inL x) (inR x') = no (λ ())
+decX (inR x) (inL x') = no (λ ())
+decX (inR x) (inR x') with decX x x'
+decX (inR x) (inR x') | yes p = yes (cong inR p)
+decX (inR x) (inR x') | no ¬p = no (¬p ∘ outR)
+
+--outStup : ∀{Y}{σ : V1 ⇀ Y}{y : Var Y}{p p' : y ∈ₚ σ here} → (here , p) ≡ (here , p') → p ≡ p'
+--outStup = {!!}
+
+decXP : ∀{X Y}{σ : X ⇀ Y}{y : Var Y} → (xp xp' : y ∈ σ) → Dec (xp ≡ xp') 
+decXP (x , p) (x' , p') with decX x x'
+decXP (x , p) (.x , p') | yes refl with decP p p'
+decXP (x , p) (.x , p') | yes refl | yes eq = yes (cong (λ q → (x , q)) eq)
+decXP (x , p) (.x , p') | yes refl | no ¬p = no (¬p ∘ out2)
+decXP (x , p) (x' , p') | no ¬p = no (¬p ∘ (cong proj₁)) 
+
+decOnto : ∀{X Y}{σ : X ⇀ Y} → (o : Onto σ) → (x : Var X) → (p : Pos (σ x)) → Dec (OntoSet o x p)
+decOnto o x (y , p) = decXP (o y) (x , p)
+
+countNPₚ : ∀{Y Z} → (a : Val Y) → {P : Pos a → Set} → (τ : Y ⇀ Z) → 
+        ((p : Pos a) → Dec (P p)) → ℕ
+countNPₚ Z τ P = 1
+countNPₚ (S a) τ P = 1 + countNPₚ a τ (P ∘ SPos)
+countNPₚ (fvar x) τ P with P (x , here) 
+countNPₚ (fvar x) τ P₁ | yes p = 0
+countNPₚ (fvar x) τ P₁ | no ¬p = countₚ (τ x)
+
+countPₚ : ∀{Y Z} → (a : Val Y) → {P : Pos a → Set} → (τ : Y ⇀ Z) → 
+        ((p : Pos a) → Dec (P p)) → ℕ
+countPₚ Z τ P = 0 
+countPₚ (S a) τ P = countPₚ a τ (P ∘ SPos)
+countPₚ (fvar x) τ P with P (x , here) 
+countPₚ (fvar x) τ P₁ | yes p = countₚ (τ x)
+countPₚ (fvar x) τ P₁ | no ¬p = 0
+
+add0 : ∀{x} → x ≡ x + 0
+add0 {zero} = refl
+add0 {suc x} = cong suc add0 
+
+addsuc : ∀{x y} → suc (x + y)  ≡ x + suc y 
+addsuc {zero} = refl
+addsuc {suc x} = cong suc (addsuc {x})
+
+add-assoc : {x y z : ℕ} → x + y + z ≡ x + (y + z)
+add-assoc {zero} = refl
+add-assoc {suc x} = cong suc (add-assoc {x})
+
+add-comm : {x y : ℕ} → x + y ≡ y + x
+add-comm {zero} = add0
+add-comm {suc x}{y} = trans (cong suc (add-comm {x})) (addsuc {y})
+
+countEq : ∀{Y Z} → (a : Val Y) → {P' : Pos a → Set} → (τ : Y ⇀ Z) → 
+        (P : (p : Pos a) → Dec (P' p)) → countₚ (a >>= τ) ≡ countNPₚ a τ P + countPₚ a τ P
+countEq Z τ P = refl
+countEq (S a) τ P = cong suc (countEq a τ (P ∘ SPos))
+countEq (fvar x) τ P with P (x , here)
+countEq (fvar x) τ P | yes p = refl
+countEq (fvar x) τ P | no ¬p = add0
+
+countOverAdd : ∀{X}(f g : Var X → ℕ) → countOver f + countOver g ≡ countOver (λ x → f x + g x)
+countOverAdd {∅} f g = refl
+countOverAdd {V1} f g = refl
+countOverAdd {X ∪ Y} f g = begin 
+   c1 + c2 + (c3 + c4) ≡⟨ trans (add-assoc {c1}) (cong (_+_ c1) (sym (add-assoc {c2})) ) ⟩ 
+   c1 + ((c2 + c3) + c4) ≡⟨ cong (λ x → c1 + (x + c4)) (add-comm {c2}) ⟩  
+   c1 + ((c3 + c2) + c4) ≡⟨ trans ( cong (_+_ c1) (add-assoc {c3})) (sym (add-assoc {c1})) ⟩
+   (c1 + c3) + (c2 + c4) 
+          ≡⟨ cong₂ _+_ (countOverAdd (f ∘ inL) (g ∘ inL)) (countOverAdd (f ∘ inR) (g ∘ inR)) ⟩ 
+   countOver (λ z → f (inL z) + g (inL z)) + countOver (λ z → f (inR z) + g (inR z)) ∎ 
+     where c1 = countOver (f ∘ inL)
+           c2 = countOver (f ∘ inR)
+           c3 = countOver (g ∘ inL)
+           c4 = countOver (g ∘ inR)
+           
+countNP : ∀{X Y Z} → (σ : X ⇀ Y) → {P : PosSet σ} → (τ : Y ⇀ Z) → 
+        (∀ x → (p : Pos (σ x)) → Dec (P x p)) → ℕ
+countNP σ τ P = countOver (λ x → countNPₚ (σ x) τ (P x)) 
+
+countP : ∀{X Y Z} → (σ : X ⇀ Y) → {P : PosSet σ} → (τ : Y ⇀ Z) → 
+        (∀ x → (p : Pos (σ x)) → Dec (P x p)) → ℕ
+countP σ τ P = countOver (λ x → countPₚ (σ x) τ (P x)) 
+
+lemma5 : ∀{X Y Z}(σ : X ⇀ Y)(τ : Y ⇀ Z) → (o : Onto σ) → countP σ τ (decOnto o) ≡ count τ
+lemma5 {Y = ∅} σ τ o = {!!}  
+lemma5 {Y = V1} σ τ o = {!!}
+lemma5 {Y = Y1 ∪ Y2} σ τ o = {!!}
+
+
+--countNP {∅} σ τ P = 0
+--countNP {V1} σ τ P with P {!σ here!} {!!} 
+--...| c = {!!}
+--countNP {X1 ∪ X2} σ τ P = countNP (σ ∘ inL) τ (P ∘ inL) + countNP (σ ∘ inR) τ (P ∘ inR)
+
 --data WFSub {X : VarSet} : {Y : VarSet} → X ⇀ Y → Set where
 --   [] : WFSub return 
 --   _∷_ : ∀{Y Z} → (x : Var X) → (a : Val Y) → {σ : X [ x // Y ] ⇀ Z} → 
@@ -135,10 +283,6 @@ _>=>W_ : ∀{X Y Z} → X ⇀W Y → Y ⇀W Z → X ⇀W Z
 --
 --
 ----
---data IsIn {Y : VarSet} (y : Var Y) : (Val Y) → Set where
---  here : IsIn y (fvar y)
---  isS : {a : Val Y} → IsIn y a → IsIn y (S a)
---  
 --outS : ∀{Y}{a : Val Y}{y : Var Y} → IsIn y (S a) → IsIn y a
 --outS (isS a) = a
 --
