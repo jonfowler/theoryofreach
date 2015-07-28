@@ -13,6 +13,7 @@ open import Function
 open import Relation.Nullary 
 open import Data.Nat
 open import Data.Unit
+open import Data.Bool
 open import Data.Fin hiding (_+_; _≤_; _<_)
 
 -- WellFoundness for one point updates with no free variables values. This is not as general as the well foundness given in the paper but is sufficient for our purposes. Will be updated to the general result at some point.
@@ -165,21 +166,25 @@ decXP (x , p) (x' , p') | no ¬p = no (¬p ∘ (cong proj₁))
 decOnto : ∀{X Y}{σ : X ⇀ Y} → (o : Onto σ) → (x : Var X) → (p : Pos (σ x)) → Dec (OntoSet o x p)
 decOnto o x (y , p) = decXP (o y) (x , p)
 
-countNPₚ : ∀{Y Z} → (a : Val Y) → {P : Pos a → Set} → (τ : Y ⇀ Z) → 
-        ((p : Pos a) → Dec (P p)) → ℕ
+forget : {A : Set} → Dec A → Bool
+forget (yes p) = true
+forget (no ¬p) = false
+
+countNPₚ : ∀{Y Z} → (a : Val Y) → (τ : Y ⇀ Z) → 
+        ((p : Pos a) → Bool) → ℕ
 countNPₚ Z τ P = 1
 countNPₚ (S a) τ P = 1 + countNPₚ a τ (P ∘ SPos)
 countNPₚ (fvar x) τ P with P (x , here) 
-countNPₚ (fvar x) τ P₁ | yes p = 0
-countNPₚ (fvar x) τ P₁ | no ¬p = countₚ (τ x)
+countNPₚ (fvar x) τ P₁ | true = 0
+countNPₚ (fvar x) τ P₁ | false = countₚ (τ x)
 
-countPₚ : ∀{Y Z} → (a : Val Y) → {P : Pos a → Set} → (τ : Y ⇀ Z) → 
-        ((p : Pos a) → Dec (P p)) → ℕ
+countPₚ : ∀{Y Z} → (a : Val Y) → (τ : Y ⇀ Z) → 
+        ((p : Pos a) → Bool) → ℕ
 countPₚ Z τ P = 0 
 countPₚ (S a) τ P = countPₚ a τ (P ∘ SPos)
 countPₚ (fvar x) τ P with P (x , here) 
-countPₚ (fvar x) τ P₁ | yes p = countₚ (τ x)
-countPₚ (fvar x) τ P₁ | no ¬p = 0
+countPₚ (fvar x) τ P₁ | true = countₚ (τ x)
+countPₚ (fvar x) τ P₁ | false = 0
 
 add0 : ∀{x} → x ≡ x + 0
 add0 {zero} = refl
@@ -197,13 +202,13 @@ add-comm : {x y : ℕ} → x + y ≡ y + x
 add-comm {zero} = add0
 add-comm {suc x}{y} = trans (cong suc (add-comm {x})) (addsuc {y})
 
-countEq : ∀{Y Z} → (a : Val Y) → {P' : Pos a → Set} → (τ : Y ⇀ Z) → 
-        (P : (p : Pos a) → Dec (P' p)) → countₚ (a >>= τ) ≡ countNPₚ a τ P + countPₚ a τ P
+countEq : ∀{Y Z} → (a : Val Y) → (τ : Y ⇀ Z) → 
+        (P : (p : Pos a) → Bool) → countₚ (a >>= τ) ≡ countNPₚ a τ P + countPₚ a τ P
 countEq Z τ P = refl
 countEq (S a) τ P = cong suc (countEq a τ (P ∘ SPos))
 countEq (fvar x) τ P with P (x , here)
-countEq (fvar x) τ P | yes p = refl
-countEq (fvar x) τ P | no ¬p = add0
+countEq (fvar x) τ P | true = refl
+countEq (fvar x) τ P | false = add0
 
 countOverAdd : ∀{X}(f g : Var X → ℕ) → countOver f + countOver g ≡ countOver (λ x → f x + g x)
 countOverAdd {∅} f g = refl
@@ -221,14 +226,35 @@ countOverAdd {X ∪ Y} f g = begin
            c4 = countOver (g ∘ inR)
            
 countNP : ∀{X Y Z} → (σ : X ⇀ Y) → {P : PosSet σ} → (τ : Y ⇀ Z) → 
-        (∀ x → (p : Pos (σ x)) → Dec (P x p)) → ℕ
+        (∀ x → (p : Pos (σ x)) → Bool) → ℕ
 countNP σ τ P = countOver (λ x → countNPₚ (σ x) τ (P x)) 
 
-countP : ∀{X Y Z} → (σ : X ⇀ Y) → {P : PosSet σ} → (τ : Y ⇀ Z) → 
-        (∀ x → (p : Pos (σ x)) → Dec (P x p)) → ℕ
+countP : ∀{X Y Z} → (σ : X ⇀ Y) → (τ : Y ⇀ Z) → 
+        (∀ x → (p : Pos (σ x)) → Bool) → ℕ
 countP σ τ P = countOver (λ x → countPₚ (σ x) τ (P x)) 
 
-lemma5 : ∀{X Y Z}(σ : X ⇀ Y)(τ : Y ⇀ Z) → (o : Onto σ) → countP σ τ (decOnto o) ≡ count τ
+data Subset : VarSet → Set where
+  all : ∀ {X} → Subset X
+  toL : ∀{X Y} → Subset X → Subset (X ∪ Y)
+  toR : ∀{X Y} → Subset Y → Subset (X ∪ Y)
+  
+shield : ∀{X Y}{σ : X ⇀ Y} → Subset X → ((x : Var X) → (p : Pos (σ x)) → Bool) → (x : Var X) → (p : Pos (σ x)) → Bool
+shield all f x p = f x p
+shield (toL s) f (inL x) p = shield s (f ∘ inL) x p
+shield (toL s) f (inR x) p = false
+shield (toR s) f (inL x) p = false
+shield (toR s) f (inR x) p = shield s (f ∘ inR) x p
+
+countShield : ∀{X Y} → Subset X → (σ : X ⇀ Y) → ℕ
+countShield all σ = count σ
+countShield (toL s) σ = countShield s (σ ∘ inL)
+countShield (toR s) σ = countShield s (σ ∘ inR)
+
+lemma4 : ∀{X Y Z}(σ : X ⇀ Y)(τ : Y ⇀ Z) → (o : Onto σ) 
+         → countP σ τ (λ x p → forget (decOnto o x p)) ≡ countShield s τ
+lemma4 = {!!}
+
+lemma5 : ∀{X Y Z}(σ : X ⇀ Y)(τ : Y ⇀ Z) → (o : Onto σ) → countP σ τ (λ x p → forget (decOnto o x p)) ≡ count τ
 lemma5 {Y = ∅} σ τ o = {!!}  
 lemma5 {Y = V1} σ τ o = {!!}
 lemma5 {Y = Y1 ∪ Y2} σ τ o = {!!}
