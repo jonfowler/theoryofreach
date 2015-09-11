@@ -17,6 +17,8 @@ open import Function
 -- Suspended Expression - Section ?
 data _⊸_ {V : ℕ}{Γ : Cxt V}{X : VarSet} : {t : Type} → Exp Γ X t → Var X → Set where
   susp : (x : Var X) → fvar x ⊸ x
+  fun-susp : ∀{u t}{x : Var X}{f : Exp Γ X (u ↠ t)}{e : Exp Γ X u} → 
+                  f ⊸ x → app f e ⊸ x
   subj-susp : ∀{t}{x : Var X}{e : Exp Γ X Nat}{e₀ : Exp Γ X t}{eₛ : Exp (Nat ∷ Γ) X t} → 
                   e ⊸ x → case e alt₀ e₀ altₛ eₛ ⊸ x
   
