@@ -1,10 +1,11 @@
-module Complete where
+module Basic.Complete where
 
-open import Helpful
-open import Subs
-open import Exp
-open import LazyNarrowing
-open import Sound
+open import Basic.Helpful
+open import Basic.Subs
+open import Basic.Exp
+open import Basic.LazyNarrowing
+open import Basic.Sound
+open import Basic.WellFound
 
 open import Data.Nat
 open import Data.Product
@@ -12,7 +13,6 @@ open import Relation.Binary.PropositionalEquality
 open import Relation.Nullary
 open import Data.Empty
 open import Function
-open import WellFound
 open import Relation.Unary using (_⇒_)
 
 Susp : ∀{V X} → Exp V X → Set

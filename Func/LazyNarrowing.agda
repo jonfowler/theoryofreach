@@ -1,8 +1,8 @@
-module LazyNarrowing where
+module Basic.LazyNarrowing where
 
-open import Exp
-open import Helpful
-open import Subs
+open import Basic.Exp
+open import Basic.Helpful
+open import Basic.Subs
 
 open import Data.Fin hiding (_+_)
 open import Data.Nat

@@ -1,10 +1,10 @@
 
-module Sound where
+module Basic.Sound where
 
-open import Helpful
-open import Subs
-open import Exp
-open import LazyNarrowing
+open import Basic.Helpful
+open import Basic.Subs
+open import Basic.Exp
+open import Basic.LazyNarrowing
 
 open import Data.Nat
 open import Data.Fin hiding (_+_)

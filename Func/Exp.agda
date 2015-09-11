@@ -1,7 +1,7 @@
-module Exp where
+module Basic.Exp where
 
-open import Helpful
-open import Subs
+open import Basic.Helpful
+open import Basic.Subs
 
 open import Data.Nat
 open import Data.Fin hiding (_+_)
