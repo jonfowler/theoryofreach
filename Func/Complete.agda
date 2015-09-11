@@ -1,11 +1,12 @@
-module Basic.Complete where
+module Func.Complete where
 
 open import Basic.Helpful
 open import Basic.Subs
-open import Basic.Exp
-open import Basic.LazyNarrowing
-open import Basic.Sound
 open import Basic.WellFound
+
+open import Func.Exp
+open import Func.LazyNarrowing
+open import Func.Sound
 
 open import Data.Nat
 open import Data.Product

@@ -64,6 +64,20 @@ S a >>= σ = S (a >>= σ)
 return : {X : Set} → SubG X X 
 return = fvar 
 
+-- Updating Variable Set
+_[_//_] : (X : VarSet) → (x : Var X) → VarSet → VarSet
+V1 [ here // Y ] = Y
+(X1 ∪ X2) [ inL x // Y ] = (X1 [ x // Y ]) ∪ X2 
+(X1 ∪ X2) [ inR x // Y ] = X1 ∪ (X2 [ x // Y ])
+
+-- Point update substitution
+_/_ : {X Y : VarSet} → (x : Var X) → Val Y → X ⇀ (X [ x // Y ]) 
+_/_ here a here = a
+_/_ (inL x) a (inL x') = ((x / a) x') >>= (λ y → fvar (inL y))
+_/_ (inL x) a (inR x') = fvar (inR x')
+_/_ (inR x) a (inL x') = fvar (inL x')
+_/_ (inR x) a (inR x') = ((x / a) x') >>= (λ y → fvar (inR y))
+
 -- Composition of substitutions (kleisli composition)
 _>=>_ : {X Y Z : Set} → SubG X Y → SubG Y Z → SubG X Z
 _>=>_ f g a = f a >>= g

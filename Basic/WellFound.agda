@@ -2,7 +2,6 @@ module Basic.WellFound where
 
 open import Basic.Subs
 open import Basic.Helpful
-open import Basic.LazyNarrowing 
 
 open import Data.Product
 open import Data.Sum

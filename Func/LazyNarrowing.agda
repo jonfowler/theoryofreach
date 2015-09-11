@@ -1,8 +1,9 @@
-module Basic.LazyNarrowing where
+module Func.LazyNarrowing where
 
-open import Basic.Exp
 open import Basic.Helpful
 open import Basic.Subs
+
+open import Func.Exp
 
 open import Data.Fin hiding (_+_)
 open import Data.Nat
@@ -17,20 +18,6 @@ data _⊸_ {V : ℕ}{X : VarSet} : Exp V X → Var X → Set where
   susp : (x : Var X) → fvar x ⊸ x
   subj-susp : ∀{e e₀ eₛ x} → e ⊸ x → case e alt₀ e₀ altₛ eₛ ⊸ x
   
--- Updating Variable Set
-_[_//_] : (X : VarSet) → (x : Var X) → VarSet → VarSet
-V1 [ here // Y ] = Y
-(X1 ∪ X2) [ inL x // Y ] = (X1 [ x // Y ]) ∪ X2 
-(X1 ∪ X2) [ inR x // Y ] = X1 ∪ (X2 [ x // Y ])
-
--- Point update substitution
-_/_ : {X Y : VarSet} → (x : Var X) → Val Y → X ⇀ (X [ x // Y ]) 
-_/_ here a here = a
-_/_ (inL x) a (inL x') = ((x / a) x') >>= (λ y → fvar (inL y))
-_/_ (inL x) a (inR x') = fvar (inR x')
-_/_ (inR x) a (inL x') = fvar (inL x')
-_/_ (inR x) a (inR x') = ((x / a) x') >>= (λ y → fvar (inR y))
-
 -- Minimal one-point bindings
 data MinVal : {X : VarSet} → Val X → Set where
    bindZ : MinVal {∅} Z

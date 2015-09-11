@@ -1,4 +1,4 @@
-module Basic.Exp where
+module Func.Exp where
 
 open import Basic.Helpful
 open import Basic.Subs
