@@ -41,6 +41,7 @@ data _↦_ {V : ℕ}{Γ : Cxt V}{X : VarSet} {t : Type} : Exp Γ X t → Exp Γ 
   case• : ∀ e₀ eₛ → case • alt₀ e₀ altₛ eₛ ↦ • 
   prom : ∀{e e' e₀ eₛ} → e ↦ e' → 
                case e alt₀ e₀ altₛ eₛ ↦ case e' alt₀ e₀ altₛ eₛ
+  app• : ∀ {u} → (e : Exp Γ X u) → app • e ↦ •
   subs : ∀{u} f → (e : Exp Γ X u) → app (lam f) e ↦ f ⟪ e ⟫
   promsub : ∀{u f f'}{e : Exp Γ X u}   → f ↦ f' → app f e ↦ app f' e
                

@@ -31,6 +31,7 @@ replace-lift : ∀{V V' X Y t u}{Γ' : Cxt V'}(Γ : Cxt V) → (e : Exp (Γ ++ u
 ↦-lift (subs f e) σ = coerce₁ (subs (f ⟦ σ ⟧) (e ⟦ σ ⟧)) 
   where
     coerce₁ = subst (λ e' → app (lam (f ⟦ σ ⟧)) (e ⟦ σ ⟧) ↦ e') (replace-lift [] f e σ)
+↦-lift (app• e) σ = app• (e ⟦ σ ⟧)
 ↦-lift (promsub r) σ = promsub (↦-lift r σ) 
 
 -- Statement of soundness

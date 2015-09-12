@@ -25,6 +25,7 @@ Susp e = ∃ (λ x → e ⊸ x)
 ↦-unlift {e = Z} σ () ¬s
 ↦-unlift {e = S e} σ () ¬s
 ↦-unlift {e = •} σ () ¬s
+↦-unlift {e = app • e} σ (app• .(e ⟦ σ ⟧)) ¬s = • , app• e , refl
 ↦-unlift {e = app • e} σ (promsub ()) ¬s
 ↦-unlift {e = app (app f' e') e} σ (promsub r) ¬s 
   with ↦-unlift {e = app f' e'} σ r (λ {(x , sus) → ¬s (x , fun-susp sus)})
