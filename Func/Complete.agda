@@ -62,6 +62,28 @@ Susp e = ∃ (λ x → e ⊸ x)
   with ↦-unlift {e = case e alt₀ e₁ altₛ e₂} σ r (λ {(x , sus) → ¬s (x , (subj-susp sus))})
 ↦-unlift {e = case case e alt₀ e₁ altₛ e₂ alt₀ e₃ altₛ e₄} b (prom r) ¬s 
   | e'' , r' , eq = case e'' alt₀ e₃ altₛ e₄  , prom r' , cong₃ case_alt₀_altₛ_ eq refl refl
+  
+↦-unlift {e = case fix f alt₀ e₁ altₛ e₂} b (prom r) ¬s 
+  with ↦-unlift {e = fix f} b r (λ {(x , sus) → ¬s (x , (subj-susp sus))}) 
+...| e' , r' , eq = case e' alt₀ e₁ altₛ e₂ , prom r' , cong₃ case_alt₀_altₛ_ eq refl refl
+↦-unlift {e = app (fix f) e₁} b (promsub r) ¬s 
+  with ↦-unlift {e = fix f} b r (λ {(x , sus) → ¬s (x , (fun-susp sus))}) 
+...| f' , r' , eq = app f' e₁ , promsub r' , cong₂ app eq refl
+↦-unlift {e = fix •} b fix• ¬s = • , fix• , refl
+↦-unlift {e = fix •} b (promfix ()) ¬s
+↦-unlift {e = fix (case e alt₀ e₁ altₛ e₂)} b (promfix r) ¬s 
+  with ↦-unlift {e = case e alt₀ e₁ altₛ e₂} b r (λ {(x , sus) → ¬s (x , (fix-susp sus))}) 
+...| e' , r' , eq = fix e' , promfix r' , cong fix eq 
+↦-unlift {e = fix (var v x)} b (promfix ()) ¬s
+↦-unlift {e = fix (app e e₁)} b (promfix r) ¬s 
+  with ↦-unlift {e = app e e₁} b r (λ {(x , sus) → ¬s (x , (fix-susp sus))}) 
+...| e' , r' , eq = fix e' , promfix r' , cong fix eq
+↦-unlift {e = fix (lam f)} b (fix ._) ¬s = 
+  f ⟪ fix (lam f) ⟫ , fix f , sym (replace-lift [] f (fix (lam f)) b)
+↦-unlift {e = fix (lam e)} b (promfix ()) ¬s
+↦-unlift {e = fix (fix f)} b (promfix r) ¬s 
+  with ↦-unlift {e = fix f} b r (λ {(x , sus) → ¬s (x , (fix-susp sus))})
+...| f' , r' , eq = fix f' , promfix r' , cong fix eq
 
 -- calculation of suspension
 Susp? : ∀{V X t}{Γ : Cxt V} → (e : Exp Γ X t) → Dec (Susp e)
@@ -77,6 +99,9 @@ Susp? (lam f) = no (λ {(x , ())})
 Susp? (case e alt₀ e₁ altₛ e₂) with Susp? e
 Susp? (case e alt₀ e₁ altₛ e₂) | yes (x , s) = yes (x , subj-susp s)
 Susp? (case e alt₀ e₁ altₛ e₂) | no ¬p = no (λ {(x , subj-susp s) → ¬p (x , s)})
+Susp? (fix f) with Susp? f 
+Susp? (fix f) | yes (x , s) = yes (x , fix-susp s)
+Susp? (fix f) | no ¬p = no (λ {(x , fix-susp s) → ¬p (x , s)})
   
 -- The "eliminator" for a variable set with one replacement
 _[|_//_] : ∀ {X Y Z} → (τ : X ⇀ Z) → (x : Var X) →  Y ⇀ Z → X [ x // Y ] ⇀ Z 

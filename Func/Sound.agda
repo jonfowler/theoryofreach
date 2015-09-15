@@ -33,6 +33,10 @@ replace-lift : ∀{V V' X Y t u}{Γ' : Cxt V'}(Γ : Cxt V) → (e : Exp (Γ ++ u
     coerce₁ = subst (λ e' → app (lam (f ⟦ σ ⟧)) (e ⟦ σ ⟧) ↦ e') (replace-lift [] f e σ)
 ↦-lift (app• e) σ = app• (e ⟦ σ ⟧)
 ↦-lift (promsub r) σ = promsub (↦-lift r σ) 
+↦-lift fix• σ = fix•
+↦-lift (fix f) σ = coerce₁ (fix (f ⟦ σ ⟧))
+  where coerce₁ = subst (λ e' → fix (lam (f ⟦ σ ⟧)) ↦ e') (replace-lift [] f (fix (lam f)) σ)
+↦-lift (promfix r) σ = promfix (↦-lift r σ)
 
 -- Statement of soundness
 ⇝⁺-sound : ∀{V X Y t}{Γ : Cxt V}{τ : X ⇀ Y}{e : Exp Γ X t}{e' : Exp Γ Y t} → 
@@ -72,6 +76,7 @@ sucExp-lift Γ (fvar x) σ = sucExp-fromV Γ (σ x)
 sucExp-lift Γ (case e alt₀ e₁ altₛ e₂) σ = cong₃ case_alt₀_altₛ_ (sucExp-lift Γ e σ) (sucExp-lift Γ e₁ σ) (sucExp-lift (Nat ∷ Γ) e₂ σ) 
 sucExp-lift Γ (app f e) σ = cong₂ app (sucExp-lift Γ f σ) (sucExp-lift Γ e σ) 
 sucExp-lift Γ (lam {u = u} f) σ = cong lam (sucExp-lift (u ∷ Γ) f σ)
+sucExp-lift Γ (fix f) σ = cong fix (sucExp-lift Γ f σ) 
 
 rep-fromV : ∀{V V' X t}{Γ' : Cxt V'}(Γ : Cxt V) → (e : Exp Γ' X t) → (a : Val X) →  
           rep Γ ⌈ a ⌉ e ≡ ⌈ a ⌉
@@ -96,5 +101,5 @@ replace-lift Γ (fvar x) e' σ = rep-fromV Γ (e' ⟦ σ ⟧) (σ x)
 replace-lift Γ (case e alt₀ e₁ altₛ e₂) e' σ = cong₃ case_alt₀_altₛ_ (replace-lift Γ e e' σ) (replace-lift Γ e₁ e' σ) (replace-lift (Nat ∷ Γ) e₂ e' σ)
 replace-lift Γ (app f e) e' σ = cong₂ app (replace-lift Γ f e' σ) (replace-lift Γ e e' σ)
 replace-lift Γ (lam {u = u} f) e' σ = cong lam (replace-lift (u ∷ Γ) f e' σ)
-
+replace-lift Γ (fix f) e' σ = cong fix (replace-lift Γ f e' σ)
 

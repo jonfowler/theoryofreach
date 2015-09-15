@@ -19,17 +19,22 @@ data Type : Set where
 Cxt : ℕ → Set 
 Cxt = Vec Type 
 
--- The expression grammar with free variables, Exp V X has de bruijn index V and free variables given by X.
+-- The expression grammar with free variables, the expression of type t, Exp Γ X t, has typing context Γ and free variables given by X.
 data Exp {V : ℕ} (Γ : Cxt V) (X : VarSet) : Type → Set where
   Z : Exp Γ X Nat
   S :  Exp Γ X Nat → Exp Γ X Nat
   • : ∀{t} → Exp Γ X t
-  app : ∀{u t} → Exp Γ X (u ↠ t) → Exp Γ X u → Exp Γ X t
-  lam : ∀{u t} → Exp (u ∷ Γ) X t → Exp Γ X (u ↠ t)
   case_alt₀_altₛ_ : ∀{t} → (e : Exp Γ X Nat) → (e₀ : Exp Γ X t) 
                              → (eₛ : Exp (Nat ∷ Γ) X t) → Exp Γ X t
   var : ∀{t} → (v : Fin V) → (Γ [ v ]= t)  → Exp Γ X t
   fvar : (x : Var X) → Exp Γ X Nat
+  
+-- The three new constructors for an expression type, application, lamdas and fix.
+  app : ∀{u t} → Exp Γ X (u ↠ t) → Exp Γ X u → Exp Γ X t
+  lam : ∀{u t} → Exp (u ∷ Γ) X t → Exp Γ X (u ↠ t)
+  fix : ∀{t} → Exp Γ X (t ↠ t) → Exp Γ X t
+ 
+
   
 -- de bruijn substitution, defined at end of file.
 _⟪_⟫ : ∀{V X u t}{Γ : Cxt V} → Exp (u ∷ Γ) X t → Exp Γ X u → Exp Γ X t
@@ -41,9 +46,17 @@ data _↦_ {V : ℕ}{Γ : Cxt V}{X : VarSet} {t : Type} : Exp Γ X t → Exp Γ 
   case• : ∀ e₀ eₛ → case • alt₀ e₀ altₛ eₛ ↦ • 
   prom : ∀{e e' e₀ eₛ} → e ↦ e' → 
                case e alt₀ e₀ altₛ eₛ ↦ case e' alt₀ e₀ altₛ eₛ
+               
+-- New application rules
   app• : ∀ {u} → (e : Exp Γ X u) → app • e ↦ •
   subs : ∀{u} f → (e : Exp Γ X u) → app (lam f) e ↦ f ⟪ e ⟫
   promsub : ∀{u f f'}{e : Exp Γ X u}   → f ↦ f' → app f e ↦ app f' e
+  
+-- Rules for fix operator
+  fix• : fix • ↦ •
+  fix :  (f : Exp (t ∷ Γ) X t) → fix (lam f) ↦ f ⟪ fix (lam f) ⟫
+  promfix : ∀{f f'} → f ↦ f' → fix f ↦ fix f' 
+
                
 -- Transistive closure
 data _↦*_ {V : ℕ}{Γ : Cxt V}{X : VarSet}{t : Type} : Exp Γ X t → Exp Γ X t → Set where
@@ -66,6 +79,7 @@ fvar x ⟦ σ ⟧ = ⌈ σ x ⌉
 (case e alt₀ e₀ altₛ eₛ) ⟦ σ ⟧ = case e ⟦ σ ⟧ alt₀ e₀ ⟦ σ ⟧ altₛ eₛ ⟦ σ ⟧ 
 app f e ⟦ σ ⟧ = app (f ⟦ σ ⟧) (e ⟦ σ ⟧)
 lam f ⟦ σ ⟧ = lam (f ⟦ σ ⟧)
+fix f ⟦ σ ⟧ = fix (f ⟦ σ ⟧)
 
 -- The definition of reachability 
 data Reach {V : ℕ}{Γ : Cxt V}{X : VarSet}{t : Type} (e : Exp Γ X t) (τ : Inp X) : Set where
@@ -94,6 +108,7 @@ sucExp Γ (case e alt₀ e₁ altₛ e₂) =
        case (sucExp Γ e) alt₀ (sucExp Γ e₁) altₛ sucExp (Nat ∷ Γ) e₂
 sucExp Γ (app f e) = app (sucExp Γ f) (sucExp Γ e)
 sucExp Γ (lam {u = u} f) = lam (sucExp (u ∷ Γ) f)
+sucExp Γ (fix f) = fix (sucExp Γ f)
 
 rep : ∀{V V' t u X}{Γ' : Cxt V'}(Γ : Cxt V) → Exp (Γ ++ u ∷ Γ') X t → Exp Γ' X u → Exp (Γ ++ Γ') X t
 rep Γ Z ef = Z
@@ -107,5 +122,6 @@ rep Γ (fvar a) ef = fvar a
 rep Γ (case e alt₀ e₁ altₛ e₂) ef = case rep Γ e ef alt₀ rep Γ e₁ ef altₛ rep (Nat ∷ Γ) e₂ ef
 rep Γ (app {u = u} f e) ef = app (rep Γ f ef) (rep Γ e ef)
 rep Γ (lam {u = u} f) ef = lam (rep (u ∷ Γ) f ef)
+rep Γ (fix f) ef = fix (rep Γ f ef)
 
 _⟪_⟫ = rep [] 
